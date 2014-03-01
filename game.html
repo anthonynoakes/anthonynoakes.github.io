@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Snake in a Space</title>
+	<link rel="shortcut icon" type="image/x-icon" href="favicon.ico" />
+	<link rel="stylesheet" href="css/style.css">
+	<script type="text/javascript" src="resources/paper.js"></script>
+	<script type="text/paperscript" canvas="canvas">	
+
+	/** DECLERATIONS **/
+	var game = false;
+	var startButton = document.getElementById("wrapper");
+	var highscoresButton = document.getElementById("wrapper2");
+	var loser = document.getElementById("loser");
+	/** SPACE ITEMS **/
+	// The amount of symbol we want to place;
+	var count = 40;
+
+	// Create a symbol, which we will use to place instances of later:
+	var path = new Path.Circle(new Point(0, 0), 5);
+	path.style = {
+		fillColor: 'yellow',
+		strokeColor: 'red'
+	};
+
+	var symbol = new Symbol(path);
+
+	// Place the instances of the symbol:
+	for (var i = 0; i < count; i++) {
+		// The center position is a random point in the view:
+		var center = Point.random() * view.size;
+		var placed = symbol.place(center);
+		placed.scale(i / count);
+		placed.data = {};
+		placed.data.vector = new Point({
+			angle: Math.random() * 360,
+			length : (i / count) * Math.random() / 5
+		});
+	}
+	
+	var vector = new Point({
+		angle: 45,
+		length: 0
+	});
+	
+	/** SPACE ITEMS END**/
+	
+	/** SNAKE ITEMS **/
+	// The amount of points in the path:
+	var points = 3;
+	var snake;
+	
+	// The distance between the points:
+	var length = 10;
+	/** SNAKE ITEMS END **/
+
+	/** LEVEL VARIABLES **/
+	var level = 0;
+		
+	/** OBJECT ARRAYS **/
+	// bullet array
+	var shots = [];
+	
+	// moon array and variable
+	var moonsize = 40;
+	var speed = 4;
+	var moon = [];
+	
+	/** LEVEL VARIABLES **/
+	var level = 1;
+	var nextlvlin = 3;
+	var lives = 3;
+	
+	/** DEBUG INTO **/
+	// Create a centered text item at the center of the view:
+	var info = new PointText({
+		point: [view.size.width-100, 50],
+		content: 'INFO:',
+		fillColor: 'white'
+	});	
+
+	var fps = new PointText({
+		point: [view.size.width - 40, 25],
+		fillColor: '#99FF99',
+		fontSize: 25
+	});		
+		
+	// FPS counter
+	// The higher this value, the less the fps will reflect temporary variations
+	// A value of 1 will only keep the last value
+	var filterStrength = 10;
+	var frameTime = 0, lastLoop = new Date, thisLoop;	
+	
+	/** END DECLARATIONS **/
+	
+	
+	/** MOUSE MOVE EVENT **/
+	var mouseVector = vector.clone();
+	var mouseold = view.center;
+	function onMouseMove(event) {
+		// Manage Background
+		mouseVector = mouseold - event.point;
+		mouseVector.length = 50;
+		mouseold = event.point;
+		
+		if (game){
+			// Manage Snake
+			snake.firstSegment.point = event.point;
+			for (var i = 0; i < points - 1; i++) {
+				var segment = snake.segments[i];
+				var nextSegment = segment.next;
+				var vector = segment.point - nextSegment.point;
+				vector.length = length;
+				nextSegment.point = segment.point - vector;
+			}
+			snake.smooth();
+		}
+	}
+
+	/** MOUSE DOWN EVENT (SHOOT BULLET) **/
+	function onMouseDown(event) {
+		if (game){
+			// get tanget and set length to get end point, use for speed of bullet
+			var point = snake.getPointAt(0);
+			var tangent = snake.getTangentAt(0);
+			tangent.length = 15;
+			
+			shots.push(new bulletObj(point, point - tangent));
+			shots[shots.length - 1].init();
+		}
+	}
+	
+	/** RESIZE event **/
+	function onResize(event) {
+		info.point = [view.size.width-100, 50];
+		fps.point = [view.size.width - 40, 25];	
+	}
+	
+	/** MAIN ANIMATION LOOP ( set up to call up to 60 times a second ) **/
+	function onFrame(event) {
+		// DEBUG INFO
+		var text = "INFO:";
+		text += "\n STARS: " + count;
+		text += "\n MOONS: " + moon.length;
+		text += "\n SHOOTS: " + shots.length;
+		text += "\n SNAKE: " + points;
+		text += "\n\n LEVEL: " + level;
+		text += "\n LIVES: " + lives;
+		//update text
+		info.content = text;
+		fps.content = Math.floor((1000/frameTime));
+		var intersections;
+		var i = 0;
+		// Update Bullets
+		for (i = shots.length - 1; i >= 0; i--)
+		{
+			shots[i].path.position += new Point(shots[i].xs,shots[i].ys);
+			shots[i].path.rotate(15); // Spin bullet for affect if framerate slow comment out
+			//check to see if shots left fields if so remove path and splice the array
+			if(shots[i].path.getPointAt(0).x < 0 || shots[i].path.getPointAt(0).y < 0) {shots[i].path.remove(); shots.splice(i,1);}
+			if(shots[i].path.getPointAt(0).x > view.size.width || shots[i].path.getPointAt(0).y > view.size.height) {shots[i].path.remove(); shots.splice(i,1);}
+		}
+		
+		// Upadte Moon
+		for (i = 0; i < moon.length; i++)
+		{
+			moon[i].path.position += new Point(moon[i].xs,moon[i].ys);
+			//check to see if moon left fields if so remove path and splice the array
+			//if(moon[i].path.getPointAt(0).x < 0 - (moon[i].size * 2) || moon[i].path.getPointAt(0).x > view.size.width) {moon[i].xs = moon[i].xs *-1;}
+			//if(moon[i].path.getPointAt(0).y < 0 - moon[i].size || moon[i].path.getPointAt(0).y > view.size.height+moon[i].size) {moon[i].ys = moon[i].ys *-1;}
+			
+			if(moon[i].path.getPointAt(0).x < 0 - (moon[i].size * 2)){moon[i].xs = Math.abs(moon[i].xs);}
+			if(moon[i].path.getPointAt(0).y < 0 - (moon[i].size * 2)){moon[i].ys = Math.abs(moon[i].ys);}
+			if(moon[i].path.getPointAt(0).x > view.size.width) {moon[i].xs = Math.abs(moon[i].xs)*-1;}
+			if(moon[i].path.getPointAt(0).y > view.size.height) {moon[i].ys = Math.abs(moon[i].ys)*-1;}
+			
+			//check intersections with bullets
+			intersections = 0;
+			for (var p = shots.length - 1; p >= 0; p--)
+			{
+				intersections = shots[p].path.getIntersections(moon[i].path);
+				if (intersections.length > 0)
+				{
+					moon[i].path.fillColor = 'orange';
+					// remove shot
+					shots[p].path.remove(); 
+					shots.splice(p,1);
+					
+					// push two new moons if size over ten
+					if( moon[i].size/2 > 10)
+					{
+						moon.push(new moonObj(moon[i].path.firstSegment.point, moon[i].size/2));
+						moon[moon.length - 1].init();  
+						moon.push(new moonObj(moon[i].path.firstSegment.point, moon[i].size/2));
+						moon[moon.length - 1].init();
+					}
+					// remove moon
+					moon[i].path.remove(); 
+					moon.splice(i,1);
+					
+					if (moon.length <= 0)
+					{
+						level++;
+						speed+=.5;
+						document.getElementById("level").innerText = "LEVEL [ "+level+" ]"
+						moonsize += 6;
+						moon.push(new moonObj([1,1], moonsize));
+						moon[moon.length - 1].init();  	
+					}
+					
+					// append snake with new segment up to certain length
+					if(points < 50) 
+					{
+						points++;
+						snake.add(snake.lastSegment.point);
+					}
+					break;
+				}
+			}
+				
+			//check intersection between moon and snake and kill life is hit any moon
+			intersections = snake.getIntersections(moon[i].path);
+			if (intersections.length > 0)
+			{
+				flashScreen();
+				lives--;
+				// remove moon
+				for (i = 0; i < moon.length; i++)
+				{
+					moon[i].path.remove(); 
+				}
+				// resetlevel
+				moon = [];
+				if(lives < 0)
+				{
+					loser.innerText = 'LOSER.\n'+level+' level(s)';
+					loser.style.visibility = 'visible';
+					game = false;
+					snake.remove();
+				}
+				else
+				{
+					// resetlevel
+					moon = [];
+					moon.push(new moonObj([1,1], moonsize));
+					moon[0].init(); 
+				}
+			}
+		}
+		
+		vector = vector + (mouseVector - vector) / 30;
+
+		// Run through the active layer's children list and change
+		// the position of the placed symbols:
+		for (i = 0; i < count; i++) {
+			var item = project.activeLayer.children[i];
+			var size = item.bounds.size;
+			//var size = new Item();
+			//size. x = view.size.width + 1;
+			var length = vector.length / 10 * size.width / 10;
+			item.position += vector.normalize(length) + item.data.vector;
+			keepInView(item);
+		}
+		
+		// update fps
+		var thisFrameTime = (thisLoop=new Date) - lastLoop;
+		frameTime+= (thisFrameTime - frameTime) / filterStrength;
+		lastLoop = thisLoop;
+	}
+
+	// fix when x < 0
+	function keepInView(item) {
+		var position = item.position;
+		var itemBounds = item.bounds;
+		var bounds = view.bounds;
+		if (itemBounds.left >= view.size.width - 1) {
+			position.x = 0;
+		}
+
+		if (position.x < 0) {
+			position.x = view.size.width;
+		}
+
+		if (itemBounds.top > view.size.height) {
+			position.y = -itemBounds.height;
+		}
+
+		if (position.y < -itemBounds.height) {
+			position.y = bounds.height  + itemBounds.height / 2;
+		}
+	}
+	
+	/** FUNCTIONS **/
+	// run when button is pushed
+	startButton.onclick = function()
+	{
+		// Snake call and build segments
+		snake = new Path({
+			strokeColor: '#00CC00',
+			strokeWidth: 20,
+			strokeCap: 'round'
+		});
+		snake.strokeColor = '#00CC00';
+		snake.fullySelected = true;
+
+		var snakestart = view.center;
+		for (var i = 0; i < points; i++){
+			snake.add(snakestart + new Point(i * length, 0));
+		}
+			
+		// initialize moon object to canvas view
+		setTimeout(function(){
+			startButton.style.visibility = 'hidden';
+			highscoresButton.style.visibility = 'hidden';
+		},333);
+		setTimeout(function(){
+			moon.push(new moonObj([1,1], moonsize));
+			moon[0].init();  
+			game = true;
+		},500);
+	}
+	
+	// run when button is pushed
+	// reset variables to 1st level and start home screen
+	loser.onclick = function()
+	{
+		points = 3;
+		level = 1;
+		lives = 3;
+		moonsize = 40;
+		game = false;
+		snake.remove();
+		loser.style.visibility = 'hidden';
+		startButton.style.visibility = 'visible';
+		highscoresButton.style.visibility = 'visible';
+		document.getElementById("level").innerText = "LEVEL [ "+level+" ]"
+	}
+	
+	// flash gradient such as in cod, cause I'm not that clever to think of anything else
+	function flashScreen()
+	{
+		var flash = new CompoundPath({
+			children: [
+				new Path.Rectangle({
+					topLeft: [0,0],
+					bottomRight: view.size}),
+				new Path.Rectangle({
+					topLeft: [10,10],
+					bottomRight: view.size-10})
+			],
+			fillColor: {
+				gradient: {
+					stops: ['black','black','black','red'],
+					radial: true
+				},
+				origin: view.center,
+				destination: [0,0]
+			}
+		});
+		setTimeout(function(){
+			flash.remove();
+		},500);
+	}
+	
+	/** CONSTRUCTORS **/
+	
+	// Bullet Construction, takes two points as its speed
+	function bulletObj(start, end)
+	{
+		this.start = start;
+		this.end = end;
+		this.xs = (start.x - end.x)*-1;
+		this.ys = (start.y - end.y)*-1;
+		
+		this.init = function() {
+			this.path = new Path.Rectangle(this.start, this.start+10);
+			this.path.strokeColor = 'white';
+		};
+		return this;
+	};
+	
+	// Moon Construction, takes two points as its speed
+	function moonObj(start, size)
+	{
+		this.size = size;
+		this.start = new Point(start);
+		this.xs = Math.random()*speed;
+		this.ys = Math.random()*speed;
+		
+		this.init = function() {
+			this.path = new Path.Circle(this.start, this.size);
+			if (this.size < 20) {this.path.fillColor = 'red';}
+			else if (this.size < 40) {this.path.fillColor = '#99CCFF';}
+			else if (this.size < 60) {this.path.fillColor = 'purple';}
+			else if (this.size < 100) {this.path.fillColor = '#EE82EE';}
+			else {this.path.fillColor = 'orange';}
+			this.fullySelected = true;
+		};
+		return this;
+	};
+	</script>
+</head>
+<body bgcolor="black">
+	<canvas id="canvas" resize style='background:black'></canvas>
+	<div id="wrapper">START.
+		<div id="tooltip">GOOD 	LUCK !</div>
+	</div>
+	<div id="loser" style='visibility:hidden'>LOSER.</div>
+	<div id="wrapper2">HIGHSCORES.</div>
+	<div id="level">LEVEL [ 1 ]</div>
+	<div id="asn"><+> ASN (2013)</div>
+</body>
+</html>

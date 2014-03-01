@@ -1,0 +1,60 @@
+#options {
+	margin: 0 50px 0 0;
+	width: 245px;
+	padding: 0;
+	float: left;
+}
+
+#options li {
+	cursor: pointer;
+	display: block;
+	margin: 0;
+	padding: 4px;
+	width: 235px;
+	background-color: #333;
+	/*color: #888;*/
+	font-size:40px;
+	font-family: "Courier New", Courier, monospace;
+	text-align: right;
+	color:#99FF99;
+}
+
+h3.section {
+	margin-top: 1em;
+	color: white;
+}
+
+#vertical_slide, #horizontal_slide {
+	background: #D0C8C8;
+	color: #8A7575;
+	padding: 10px;
+	border: 5px solid #F3F1F1;
+	font-weight: bold;
+}
+
+div.marginbottom {
+	/* Since the Fx.Slide element resets margins, we set a margin on the above element */
+	margin-bottom: 10px;
+}
+
+
+#accordion  {
+  margin: 20px 0 0;
+  max-width: 400px;
+}
+#accordion H2 {
+	background: #6B7B95;
+	color: white;
+	cursor: pointer;
+	font: 12px Helvetica, Arial, sans-serif;
+	line-height: 16px;
+	margin: 0 0 4px 0;
+	padding: 3px 5px 1px;
+}
+#accordion .content {
+	background-color: #F4F5F5;
+}
+#accordion .content p {
+	margin: 0.5em 0;
+	padding: 0 6px 8px 6px;
+ }
